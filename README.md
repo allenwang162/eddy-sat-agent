@@ -59,6 +59,10 @@ The project loads `.env` values if present. Key settings include:
 - `PORT` - bind port (default `3000`)
 - `OPENAI_API_KEY` - OpenAI API key for the tutoring endpoint
 - `OPENAI_MODEL` - OpenAI model to use (default `gpt-4.1-mini`)
+- `LOG_LEVEL` - application log level (default `INFO`)
+- `LOG_FORMAT` - `json` or `text` (default `json`)
+- `LOG_FILE` - optional structured log file path (default `data/runtime/logs/app.log`)
+- `LOG_USER_HASH_SALT` - salt used to hash user IDs in logs (defaults to `AUTH_SECRET`)
 - `CODEX_CLIENT_ID` - Codex client ID
 - `CODEX_REDIRECT_URI` - Codex OAuth redirect URI
 - `CODEX_BASE_URL` - Codex backend URL
@@ -76,7 +80,20 @@ The project loads `.env` values if present. Key settings include:
 - `POST /api/auth/codex/logout` - disconnect Codex auth
 - `GET /api/progress` - load saved progress for authenticated user
 - `POST /api/progress` - save progress for authenticated user
+- `POST /api/events` - record lightweight client telemetry events
 - `POST /api/chat` - send a tutoring/chat request
+
+## Logging and Observability
+
+The app uses structured JSON logging through `backend/shared/observability.py`. Logs include request IDs, HTTP method/path/status/duration, question-bank loads, auth lifecycle events, progress saves, tutor mode selection, and client events such as practice set start/completion.
+
+By default, logs are written to stdout and `data/runtime/logs/app.log`:
+
+```bash
+LOG_LEVEL=INFO LOG_FORMAT=json ./start.sh
+```
+
+User IDs are hashed before being written to logs. Avoid logging emails, raw prompts, passwords, session tokens, or access tokens. The JSON format is intentionally friendly to future log shipping into Splunk, OpenSearch, Datadog, or a small internal dashboard.
 
 ## Project structure
 
@@ -85,6 +102,20 @@ The project loads `.env` values if present. Key settings include:
 - `public/` - static frontend assets
 - `data/` - runtime and seed data storage
 - `docs/` - project documentation and architecture notes
+
+## Question Import Harness
+
+After importing or regenerating exam questions, validate the seed bank before using it in the app:
+
+```bash
+python3 scripts/validate_question_bank.py \
+  --expect-count total=120 \
+  --expect-count Math=54 \
+  --expect-count "Reading and Writing=66" \
+  --expect-count free-response=14
+```
+
+The harness catches common PDF import/display problems: missing fields, duplicate IDs, empty prompts, multiple-choice items without four choices, free-response items with choice keys, embedded choices trapped in prompts, likely graph/header artifacts, and missing figure images.
 
 ## Documentation
 

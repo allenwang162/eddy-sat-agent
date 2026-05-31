@@ -31,7 +31,7 @@ const SAT_BLUEPRINT = [
       "Math: Geometry and Trigonometry"
     ],
     bundles: [
-      { id: "full-pt4", title: "Practice Test 4 Mixed Set", source: "College Board Practice Test 4 PDF", status: "available", mode: "All", size: 8 },
+      { id: "full-pt4", title: "Practice Test 4 Full Bank", source: "College Board Practice Test 4 PDF", status: "available", mode: "All", size: 120 },
       { id: "full-adaptive-1", title: "Adaptive Full SAT Bundle", source: "Coming when more tests are imported", status: "locked", mode: "All", size: 0 },
       { id: "full-review-1", title: "Weakness Review Bundle", source: "Generated from student history", status: "locked", mode: "All", size: 0 }
     ]
@@ -50,7 +50,7 @@ const SAT_BLUEPRINT = [
       "Expression of Ideas"
     ],
     bundles: [
-      { id: "rw-pt4", title: "Practice Test 4 Reading/Writing", source: "College Board Practice Test 4 PDF", status: "available", mode: "Reading and Writing", size: 4 },
+      { id: "rw-pt4", title: "Practice Test 4 Reading/Writing", source: "College Board Practice Test 4 PDF", status: "available", mode: "Reading and Writing", size: 66 },
       { id: "rw-domain-craft", title: "Craft and Structure Drill", source: "Coming from generated bank", status: "locked", mode: "Reading and Writing", size: 0 },
       { id: "rw-grammar", title: "Grammar and Expression Drill", source: "Coming from generated bank", status: "locked", mode: "Reading and Writing", size: 0 }
     ]
@@ -69,7 +69,7 @@ const SAT_BLUEPRINT = [
       "Geometry and Trigonometry"
     ],
     bundles: [
-      { id: "math-pt4", title: "Practice Test 4 Math", source: "College Board Practice Test 4 PDF", status: "available", mode: "Math", size: 6 },
+      { id: "math-pt4", title: "Practice Test 4 Math", source: "College Board Practice Test 4 PDF", status: "available", mode: "Math", size: 54 },
       { id: "math-algebra", title: "Algebra and Functions Drill", source: "Coming from generated bank", status: "locked", mode: "Math", size: 0 },
       { id: "math-data-geo", title: "Data, Geometry, and Trig Drill", source: "Coming from generated bank", status: "locked", mode: "Math", size: 0 }
     ]
@@ -142,6 +142,20 @@ function userId() {
 
 function isSignedIn() {
   return Boolean(state.user);
+}
+
+function trackEvent(event, properties = {}) {
+  const payload = JSON.stringify({ event, properties });
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon("/api/events", new Blob([payload], { type: "application/json" }));
+    return;
+  }
+  fetch("/api/events", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: payload,
+    keepalive: true
+  }).catch(() => {});
 }
 
 function requireSignedIn(action = "practice") {
@@ -232,6 +246,16 @@ function renderBundleFilter() {
   )).join("");
 }
 
+function questionsForBundle(bundle) {
+  const mode = bundle.mode || "All";
+  return mode === "All" ? state.questions : state.questions.filter((question) => question.section === mode);
+}
+
+function bundleQuestionCount(bundle) {
+  if (bundle.status !== "available") return Number(bundle.size || 0);
+  return questionsForBundle(bundle).length;
+}
+
 function renderLanding() {
   const subject = activeSubject();
   els.subjectCards.innerHTML = SAT_BLUEPRINT.map((item) => (
@@ -250,7 +274,7 @@ function renderLanding() {
       <span>${bundle.status === "available" ? "Ready" : "Coming soon"}</span>
       <strong>${bundle.title}</strong>
       <small>${bundle.source}</small>
-      <em>${bundle.status === "available" ? `${bundle.size} questions in this prototype set` : "Add more PDFs or generated questions to unlock"}</em>
+      <em>${bundle.status === "available" ? `${bundleQuestionCount(bundle)} questions in this prototype set` : "Add more PDFs or generated questions to unlock"}</em>
     </button>`
   )).join("");
 
@@ -264,15 +288,40 @@ function renderQuestion() {
   els.questionSection.textContent = question.section;
   els.questionConcept.textContent = question.concept;
   els.questionCounter.textContent = `Question ${state.currentIndex + 1} of ${state.activeSet.length}`;
-  els.questionPrompt.textContent = question.prompt;
+  els.questionPrompt.innerHTML = renderMathText(question.prompt);
   els.choices.innerHTML = "";
+  const choices = Array.isArray(question.choices) ? question.choices : [];
 
-  question.choices.forEach((choice) => {
+  if (question.metadata?.image) {
+    const figure = document.createElement("figure");
+    figure.className = "question-figure";
+    figure.innerHTML = `<img src="${question.metadata.image}" alt="Figure for ${question.id}">`;
+    els.choices.appendChild(figure);
+  }
+
+  if (!choices.length) {
+    const wrapper = document.createElement("label");
+    wrapper.className = "free-response";
+    wrapper.innerHTML = `<span>Your answer</span>`;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "decimal";
+    input.autocomplete = "off";
+    input.placeholder = "Type a number, decimal, or fraction";
+    input.value = state.answers[question.id] || "";
+    input.addEventListener("input", () => {
+      state.answers[question.id] = input.value;
+    });
+    wrapper.appendChild(input);
+    els.choices.appendChild(wrapper);
+  }
+
+  choices.forEach((choice) => {
     const key = choice.slice(0, 1);
     const button = document.createElement("button");
     button.className = `choice ${state.answers[question.id] === key ? "selected" : ""}`;
     button.type = "button";
-    button.innerHTML = `<span class="choice-key">${key}</span><span>${choice.slice(3)}</span>`;
+    button.innerHTML = `<span class="choice-key">${key}</span><span>${renderMathText(choice.slice(3))}</span>`;
     button.addEventListener("click", () => {
       state.answers[question.id] = key;
       renderQuestion();
@@ -283,6 +332,44 @@ function renderQuestion() {
   els.previousButton.disabled = state.currentIndex === 0;
   els.nextButton.classList.toggle("hidden", state.currentIndex === state.activeSet.length - 1);
   els.submitButton.classList.toggle("hidden", state.currentIndex !== state.activeSet.length - 1);
+}
+
+function normalizeAnswer(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^0+(?=\d)/, "")
+    .replace(/\s+/g, "")
+    .replace(/^\./, "0.");
+}
+
+function correctAnswers(answer) {
+  return String(answer || "")
+    .split(";")
+    .map(normalizeAnswer)
+    .filter(Boolean);
+}
+
+function isCorrectAnswer(selected, answer) {
+  return correctAnswers(answer).includes(normalizeAnswer(selected));
+}
+
+function resetPracticeSession() {
+  clearInterval(state.timerId);
+  state.timerId = null;
+  state.activeSet = [];
+  state.currentIndex = 0;
+  state.answers = {};
+  state.startedAt = null;
+  els.timer.textContent = "00:00";
+  els.questionSection.textContent = "Section";
+  els.questionConcept.textContent = "Concept";
+  els.questionCounter.textContent = "Question 1";
+  els.questionPrompt.textContent = "";
+  els.choices.innerHTML = "";
+  els.chatLog.innerHTML = "";
+  els.tutorMode.textContent = "Local";
+  setView("landingView");
 }
 
 function addChatMessage(role, text) {
@@ -305,6 +392,11 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function renderMathText(text) {
+  return escapeHtml(text)
+    .replace(/\^(-?\d+)/g, "<sup>$1</sup>");
 }
 
 function renderInlineMarkdown(text) {
@@ -362,14 +454,17 @@ function startTimer() {
 function startSet() {
   if (!requireSignedIn("start a practice set")) return;
   const bundle = activeBundle();
-  const section = els.sectionFilter.value || bundle.mode || "All";
-  const pool = section === "All" ? state.questions : state.questions.filter((q) => q.section === section);
-  const bundleSize = Number(bundle.size || 8);
-  state.activeSet = shuffle(pool).slice(0, Math.min(bundleSize, pool.length));
+  const pool = questionsForBundle(bundle);
+  state.activeSet = shuffle(pool);
   state.currentIndex = 0;
   state.answers = {};
   els.chatLog.innerHTML = "";
   addChatMessage("agent", "I’m here. Ask for a hint, a concept check, or help eliminating choices. I’ll keep it clear and not overdo it.");
+  trackEvent("practice_set_started", {
+    bundleId: bundle.id,
+    section: bundle.mode || "All",
+    questionCount: state.activeSet.length
+  });
   startTimer();
   renderQuestion();
   setView("practiceView");
@@ -387,7 +482,7 @@ function scoreActiveSet() {
       skill: question.skill,
       answer: question.answer,
       selected,
-      correct: selected === question.answer,
+      correct: isCorrectAnswer(selected, question.answer),
       explanation: question.explanation,
       logic: question.logic,
       tutorial: question.tutorial
@@ -407,6 +502,12 @@ function scoreActiveSet() {
   state.latestResult = attempt;
   state.attempts.push(attempt);
   saveLocal();
+  trackEvent("practice_set_completed", {
+    total: attempt.total,
+    correct: attempt.correct,
+    score: attempt.score,
+    durationMs: attempt.durationMs
+  });
   syncProgress();
   renderReview();
   renderStats();
@@ -692,6 +793,7 @@ async function submitAuth(mode) {
   }
   state.user = data.user;
   localStorage.setItem("eddyUser", JSON.stringify(state.user));
+  trackEvent(mode === "register" ? "auth_registered" : "auth_logged_in");
   renderAuthUser();
   await loadProgress();
   await refreshAuthStatus();
@@ -744,7 +846,8 @@ function bindEvents() {
     await fetch("/api/auth/logout", { method: "POST" });
     state.user = null;
     localStorage.removeItem("eddyUser");
-    els.tutorMode.textContent = "Local";
+    resetPracticeSession();
+    trackEvent("auth_logged_out");
     await loadProgress();
     renderAuthUser();
     await refreshAuthStatus();

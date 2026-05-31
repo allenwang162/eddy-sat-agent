@@ -27,6 +27,11 @@ SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_FORMAT = os.getenv("LOG_FORMAT", "json").lower()
+LOG_FILE = os.getenv("LOG_FILE", str(RUNTIME_DATA_DIR / "logs" / "app.log"))
+LOG_USER_HASH_SALT = os.getenv("LOG_USER_HASH_SALT", AUTH_SECRET)
+
 CODEX_CLIENT_ID = os.getenv("CODEX_CLIENT_ID", "app_EMoamEEZ73f0CkXaXp7hrann")
 CODEX_REDIRECT_URI = os.getenv("CODEX_REDIRECT_URI", "http://localhost:1455/auth/callback")
 CODEX_BASE_URL = os.getenv("CODEX_BASE_URL", "https://chatgpt.com/backend-api/codex")

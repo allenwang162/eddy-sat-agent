@@ -104,6 +104,12 @@ def import_seed_questions():
     if not questions:
         return
     with _connect() as db:
+        seed_ids = [question["id"] for question in questions]
+        placeholders = ",".join("?" for _ in seed_ids)
+        db.execute(
+            f"delete from question_bank_items where id not in ({placeholders})",
+            seed_ids,
+        )
         for question in questions:
             db.execute(
                 """
