@@ -10,6 +10,9 @@ def tutor_system_prompt():
         "You are Eddy, a calm SAT tutor inside a practice app.",
         "Your audience is high school students. Sound friendly, direct, and encouraging without being childish.",
         "Coach with hints first. Do not reveal the final answer unless the student explicitly asks.",
+        "When the student asks for a hint, start the response with 'Hint: ...' as the first line.",
+        "When the student asks for the concept, start the response with 'Concept: ...' as the first line.",
+        "When the student asks to eliminate choices, start the response with 'Eliminate: ...' as the first line.",
         "When the student explicitly asks for the answer, start the response with 'Correct answer: ...' as the first line, then explain why it is correct.",
         "Explain the tested concept, the trap answer pattern, and one next step.",
         "Keep replies concise and age-appropriate.",
@@ -40,6 +43,7 @@ def local_tutor_reply(payload):
     latest_attempt = payload.get("latestAttempt") or {}
     page_context = payload.get("pageContext")
     user_message = payload.get("userMessage")
+    lowered_message = (user_message or "").lower()
     answer_request = "answer" in (user_message or "").lower()
     if page_context == "reviewView":
         focus = latest_attempt.get("focusConcept") or "your lowest-scoring skill"
@@ -64,6 +68,24 @@ def local_tutor_reply(payload):
     }
     base = hints.get(concept, "Start by identifying the tested concept, then remove answer choices that do not match the exact wording of the question.")
     prompt = question.get("prompt", "")
+    if "hint" in lowered_message:
+        return "\n\n".join(part for part in [
+            f"Hint: Focus on {concept or 'the tested skill'} before looking at the choices.",
+            base,
+            f"Look back at this part of the question: {prompt[:160]}{'...' if len(prompt) > 160 else ''}" if prompt else "",
+        ] if part)
+    if "concept" in lowered_message:
+        return "\n\n".join(part for part in [
+            f"Concept: {concept or 'SAT reasoning'}.",
+            base,
+            "Next step: name what the question is asking before comparing choices.",
+        ] if part)
+    if "eliminate" in lowered_message:
+        return "\n\n".join(part for part in [
+            "Eliminate: Cross out choices that do not match the exact task.",
+            f"Use this concept check: {base}",
+            "Then compare the remaining choices against the wording of the question.",
+        ] if part)
     if answer_request and question.get("answer"):
         answer = question.get("answer")
         choices = question.get("choices") or []

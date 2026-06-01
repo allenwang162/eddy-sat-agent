@@ -213,17 +213,24 @@ function setView(viewId) {
 
 const TUTOR_PROMPTS = {
   practiceView: [
-    ["Hint", "Give me a small hint, not the answer."],
-    ["Concept", "Explain the concept behind this question."],
-    ["Eliminate", "Show me how to eliminate wrong choices."],
-    ["Answer", "Show the correct answer first at the top, then explain why it is correct."]
+    { label: "Hint", icon: "?", tone: "hint", prompt: "Start with 'Hint:' on the first line. Give me a small hint, not the answer." },
+    { label: "Concept", icon: "i", tone: "concept", prompt: "Start with 'Concept:' on the first line. Explain the concept behind this question." },
+    { label: "Eliminate", icon: "x", tone: "eliminate", prompt: "Start with 'Eliminate:' on the first line. Show me how to eliminate wrong choices." },
+    { label: "Answer", icon: "✓", tone: "answer", prompt: "Show the correct answer first at the top, then explain why it is correct." }
   ],
   reviewView: [
-    ["Practice plan", "Create a short practice plan based on my latest SAT attempt."],
-    ["Weakness plan", "Analyze my weak areas and give me an improvement plan."],
-    ["Next focus", "What should I focus on next, and why?"],
-    ["Score analysis", "Explain my score and concept breakdown in plain language."]
+    { label: "Practice plan", icon: "↗", tone: "concept", prompt: "Create a short practice plan based on my latest SAT attempt." },
+    { label: "Weakness plan", icon: "!", tone: "eliminate", prompt: "Analyze my weak areas and give me an improvement plan." },
+    { label: "Next focus", icon: "→", tone: "hint", prompt: "What should I focus on next, and why?" },
+    { label: "Score analysis", icon: "✓", tone: "answer", prompt: "Explain my score and concept breakdown in plain language." }
   ]
+};
+
+const CHAT_PLACEHOLDERS = {
+  practiceView: "Ask Eddy to explain step-by-step...",
+  reviewView: "Ask why your answer was wrong...",
+  landingView: "Ask Eddy anything...",
+  progressView: "Ask about your progress..."
 };
 
 function tutorContextLabel(viewId = state.currentView) {
@@ -238,16 +245,25 @@ function updateTutorForView(viewId = state.currentView) {
     slot.appendChild(els.tutorPanel);
   }
   renderQuickPrompts(viewId);
+  updateChatPlaceholder(viewId);
 }
 
 function renderQuickPrompts(viewId = state.currentView) {
   const prompts = TUTOR_PROMPTS[viewId] || TUTOR_PROMPTS.practiceView;
-  els.quickPrompts.innerHTML = prompts.map(([label, prompt]) => (
-    `<button type="button" data-prompt="${escapeHtml(prompt)}">${label}</button>`
+  els.quickPrompts.innerHTML = prompts.map(({ label, icon, tone, prompt }) => (
+    `<button class="quick-prompt-${tone}" type="button" data-prompt="${escapeHtml(prompt)}"><span aria-hidden="true">${icon}</span>${label}</button>`
   )).join("");
   els.quickPrompts.querySelectorAll("button").forEach((button) => {
     button.disabled = !isSignedIn();
   });
+}
+
+function updateChatPlaceholder(viewId = state.currentView) {
+  if (!isSignedIn()) {
+    els.chatInput.placeholder = "Sign in to ask Eddy";
+    return;
+  }
+  els.chatInput.placeholder = CHAT_PLACEHOLDERS[viewId] || "Ask Eddy anything...";
 }
 
 function currentQuestion() {
@@ -430,9 +446,9 @@ function resetTutorChat(viewId = state.currentView) {
   els.chatLog.innerHTML = "";
   els.chatInput.value = "";
   if (viewId === "practiceView") {
-    addChatMessage("agent", "Ready when you are. Use a quick action or ask anything about this question.");
+    addChatMessage("system", "Ready when you are. Use a quick action or ask anything about this question.");
   } else if (viewId === "reviewView") {
-    addChatMessage("agent", "I’m focused on your review now. Ask for a practice plan, weakness improvement plan, next focus steps, or score analysis.");
+    addChatMessage("system", "Review mode is ready. Ask for a plan, a weakness check, next steps, or anything about your results.");
   }
 }
 
@@ -454,7 +470,9 @@ function latestAttemptSummary() {
 function addChatMessage(role, text) {
   const message = document.createElement("div");
   message.className = `message ${role}`;
-  if (role === "agent") {
+  if (role === "system") {
+    message.innerHTML = `<span class="system-avatar">E</span><span>${renderInlineMarkdown(text)}</span>`;
+  } else if (role === "agent") {
     message.innerHTML = renderChatMarkdown(text);
   } else {
     message.textContent = text;
@@ -514,6 +532,23 @@ function renderChatMarkdown(text) {
       continue;
     }
     flushList();
+    const answerLine = trimmed.match(/^Correct answer:\s*(.+)$/i);
+    if (answerLine) {
+      html.push(`<div class="chat-callout answer-callout"><span>Correct answer</span><strong>${renderInlineMarkdown(answerLine[1])}</strong></div>`);
+      continue;
+    }
+    const actionLine = trimmed.match(/^(Hint|Concept|Eliminate):\s*(.+)$/i);
+    if (actionLine) {
+      const tone = actionLine[1].toLowerCase();
+      html.push(`<div class="chat-callout ${tone}-callout"><span>${renderInlineMarkdown(actionLine[1])}</span><strong>${renderInlineMarkdown(actionLine[2])}</strong></div>`);
+      continue;
+    }
+    const whyLine = trimmed.match(/^(Why|Why this is correct|Why the other choices are wrong):\s*(.*)$/i);
+    if (whyLine) {
+      html.push(`<p class="chat-heading">${renderInlineMarkdown(whyLine[1])}</p>`);
+      if (whyLine[2]) html.push(`<p>${renderInlineMarkdown(whyLine[2])}</p>`);
+      continue;
+    }
     html.push(`<p>${renderInlineMarkdown(trimmed)}</p>`);
   }
   flushList();
@@ -869,7 +904,7 @@ function renderAuthUser() {
   els.startTestButton.textContent = signedIn ? "Start set" : "Sign in to start";
   els.sendChatButton.disabled = !signedIn;
   els.chatInput.disabled = !signedIn;
-  els.chatInput.placeholder = signedIn ? "Ask for a hint" : "Sign in to ask Eddy";
+  updateChatPlaceholder(state.currentView);
   els.quickPrompts.querySelectorAll("button").forEach((button) => {
     button.disabled = !signedIn;
   });
