@@ -33,7 +33,7 @@ async def lifespan(_app: FastAPI):
     log_event(logger, "app.shutdown")
 
 
-app = FastAPI(title="Eddy SAT Agent API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Eddy SAT GOAT API", version="0.1.0", lifespan=lifespan)
 
 
 @app.middleware("http")

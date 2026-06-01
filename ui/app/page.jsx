@@ -6,7 +6,7 @@ const appMarkup = `
     <div class="brand">
       <div class="brand-mark">E</div>
       <div>
-        <h1>Eddy SAT Agent</h1>
+        <h1>Eddy SAT GOAT</h1>
         <p>Practice with an AI tutor.</p>
       </div>
     </div>

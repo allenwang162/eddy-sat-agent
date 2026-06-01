@@ -102,7 +102,7 @@ def frame(step):
     draw = ImageDraw.Draw(overlay)
 
     rounded(draw, (28, 28, W - 28, H - 28), 22, (255, 255, 255, 238))
-    text(draw, (54, 54), "Eddy SAT Agent", fill=TEAL, fnt=FONT_BOLD)
+    text(draw, (54, 54), "Eddy SAT GOAT", fill=TEAL, fnt=FONT_BOLD)
     text(draw, (54, 82), "AI tutoring, review, and progress analysis for SAT practice", fill=MUTED, fnt=FONT_SM)
 
     scene = 0 if step < 24 else 1 if step < 48 else 2

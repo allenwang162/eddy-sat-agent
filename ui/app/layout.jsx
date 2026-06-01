@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Eddy SAT Agent",
+  title: "Eddy SAT GOAT",
   description: "Digital SAT practice with an AI tutor.",
 };
 

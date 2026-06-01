@@ -1,4 +1,4 @@
-# Eddy SAT Agent
+# Eddy SAT GOAT
 
 A SAT practice and tutoring app with a Next.js UI and FastAPI APIs.
 

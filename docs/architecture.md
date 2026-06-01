@@ -1,4 +1,4 @@
-# Eddy SAT Agent Architecture
+# Eddy SAT GOAT Architecture
 
 ## Project layout
 
