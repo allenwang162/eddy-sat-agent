@@ -4,7 +4,9 @@ const appMarkup = `
 <div class="app-shell">
   <header class="app-header">
     <div class="brand">
-      <div class="brand-mark">E</div>
+      <div class="brand-mark">
+        <img src="/assets/favicon.png" alt="Eddy SAT GOAT logo" />
+      </div>
       <div>
         <h1>Eddy SAT GOAT</h1>
         <p>Practice with an AI tutor.</p>
@@ -27,12 +29,16 @@ const appMarkup = `
 
     <details class="account-menu" id="accountMenu">
       <summary>
-        <span class="profile-avatar compact">E</span>
+        <div class="profile-avatar compact">
+          <img src="/assets/favicon.png" alt="Eddy SAT GOAT logo" />
+        </div>
         <span>Account</span>
       </summary>
       <section class="login-panel" id="loginPanel">
         <div class="profile-top">
-          <div class="profile-avatar">E</div>
+          <div class="profile-avatar">
+            <img src="/assets/favicon.png" alt="Eddy SAT GOAT logo" />
+          </div>
           <div>
             <p class="eyebrow">Student Hub</p>
             <h3 id="profileTitle">Ready to practice?</h3>
