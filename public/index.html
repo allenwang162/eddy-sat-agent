@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Eddy SAT Agent</title>
-    <link rel="stylesheet" href="/styles.css?v=20260601-account-menu">
+    <link rel="stylesheet" href="/styles.css?v=20260601-tutor-free-chat-copy">
   </head>
   <body>
     <div class="app-shell">
@@ -103,6 +103,10 @@
               <p class="eyebrow">Choose your route</p>
               <h3>Digital SAT practice bundles</h3>
               <p>Pick the whole test or focus on a section. Each card lists the objectives College Board tests so practice and review stay tied to real SAT skills.</p>
+              <figure class="demo-video-card">
+                <img src="/assets/eddy-demo.gif" alt="Short demo showing SAT AI Tutor hints, review analysis, and progress tracking for SAT improvement.">
+                <figcaption>Quick demo: AI tutor help, review analysis, and progress tracking.</figcaption>
+              </figure>
               <div id="subjectCards" class="subject-cards"></div>
             </article>
             <article class="bundle-panel">
@@ -115,7 +119,7 @@
         </section>
 
         <section id="practiceView" class="view">
-          <div class="practice-layout">
+          <div class="study-layout">
             <article class="question-area">
               <div class="question-meta">
                 <span id="questionSection">Section</span>
@@ -131,55 +135,56 @@
                 <button id="submitButton" type="button" class="primary-button hidden">Submit</button>
               </div>
             </article>
-
-            <aside class="tutor-panel">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">SAT AI Tutor</p>
-                  <h3>Ask Eddy</h3>
-                  <p id="llmDescription" class="tutor-status-copy">Connect SAT AI Tutor to let Ask Eddy try ChatGPT/Codex first.</p>
-                </div>
-                <div class="tutor-status">
-                  <span id="tutorMode">Local</span>
-                  <strong id="llmStatus">Local tutor ready</strong>
-                </div>
-              </div>
-              <div class="tutor-connect-actions">
-                <button id="openAiLoginButton" class="secondary-button" type="button">Connect SAT AI Tutor</button>
-                <button id="codexLogoutButton" class="secondary-button hidden" type="button">Disconnect SAT AI Tutor</button>
-              </div>
-              <div id="chatLog" class="chat-log" aria-live="polite"></div>
-              <div class="quick-prompts" aria-label="Quick tutor prompts">
-                <button type="button" data-prompt="Give me a small hint, not the answer.">Hint</button>
-                <button type="button" data-prompt="Explain the concept behind this question.">Concept</button>
-                <button type="button" data-prompt="Show me how to eliminate wrong choices.">Eliminate</button>
-                <button type="button" data-prompt="Show the answer and explain why.">Answer</button>
-              </div>
-              <div class="chat-input-row">
-                <input id="chatInput" type="text" placeholder="Ask for a hint">
-                <button id="sendChatButton" type="button" class="icon-button" aria-label="Send message">></button>
-              </div>
-            </aside>
+            <div class="tutor-slot" data-tutor-slot="practice"></div>
           </div>
         </section>
 
         <section id="reviewView" class="view">
-          <div class="review-grid">
-            <article class="score-panel">
-              <p class="eyebrow">Latest result</p>
-              <div id="scoreBig" class="score-big">No attempt yet</div>
-              <p id="scoreDetail"></p>
-              <div id="conceptBreakdown" class="concept-list"></div>
-            </article>
-            <article class="recommendation-panel">
-              <p class="eyebrow">Practice plan</p>
-              <h3 id="focusConcept">Complete a set to get recommendations</h3>
-              <p id="focusExplanation"></p>
-              <div id="similarQuestions" class="similar-list"></div>
-            </article>
+          <div class="study-layout">
+            <div class="review-content">
+              <div class="review-grid">
+                <article class="score-panel">
+                  <p class="eyebrow">Latest result</p>
+                  <div id="scoreBig" class="score-big">No attempt yet</div>
+                  <p id="scoreDetail"></p>
+                  <div id="conceptBreakdown" class="concept-list"></div>
+                </article>
+                <article class="recommendation-panel">
+                  <p class="eyebrow">Practice plan</p>
+                  <h3 id="focusConcept">Complete a set to get recommendations</h3>
+                  <p id="focusExplanation"></p>
+                  <div id="similarQuestions" class="similar-list"></div>
+                </article>
+              </div>
+              <div id="answerReview" class="answer-review"></div>
+            </div>
+            <div class="tutor-slot" data-tutor-slot="review"></div>
           </div>
-          <div id="answerReview" class="answer-review"></div>
         </section>
+
+        <aside id="tutorPanel" class="tutor-panel hidden">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SAT AI Tutor</p>
+              <h3>Ask Eddy</h3>
+              <p id="llmDescription" class="tutor-status-copy">Connect SAT AI Tutor to let Ask Eddy try ChatGPT/Codex first.</p>
+            </div>
+            <div class="tutor-status">
+              <span id="tutorMode">Local</span>
+              <strong id="llmStatus">Local tutor ready</strong>
+            </div>
+          </div>
+          <div class="tutor-connect-actions">
+            <button id="openAiLoginButton" class="secondary-button" type="button">Connect AI model</button>
+            <button id="codexLogoutButton" class="secondary-button hidden" type="button">Disconnect SAT AI Tutor</button>
+          </div>
+          <div id="chatLog" class="chat-log" aria-live="polite"></div>
+          <div id="quickPrompts" class="quick-prompts" aria-label="Quick tutor prompts"></div>
+          <div class="chat-input-row">
+            <input id="chatInput" type="text" placeholder="Ask for a hint">
+            <button id="sendChatButton" type="button" class="icon-button" aria-label="Send message">></button>
+          </div>
+        </aside>
 
         <section id="progressView" class="view">
           <div class="progress-grid">
@@ -196,6 +201,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=20260601-account-menu-close"></script>
+    <script src="/app.js?v=20260601-tutor-free-chat-copy"></script>
   </body>
 </html>

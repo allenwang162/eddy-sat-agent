@@ -9,7 +9,8 @@ const state = {
   attempts: JSON.parse(localStorage.getItem("eddyAttempts") || "[]"),
   latestResult: null,
   selectedSubject: localStorage.getItem("eddySelectedSubject") || "full",
-  selectedBundle: localStorage.getItem("eddySelectedBundle") || "full-pt4"
+  selectedBundle: localStorage.getItem("eddySelectedBundle") || "full-pt4",
+  currentView: "landingView"
 };
 
 const SAT_BLUEPRINT = [
@@ -90,6 +91,7 @@ const els = {
   signedInStep: $("#signedInStep"),
   signedInName: $("#signedInName"),
   signedInEmail: $("#signedInEmail"),
+  tutorPanel: $("#tutorPanel"),
   llmStatus: $("#llmStatus"),
   llmDescription: $("#llmDescription"),
   studentName: $("#studentName"),
@@ -121,7 +123,7 @@ const els = {
   chatLog: $("#chatLog"),
   chatInput: $("#chatInput"),
   sendChatButton: $("#sendChatButton"),
-  quickPrompts: $(".quick-prompts"),
+  quickPrompts: $("#quickPrompts"),
   tutorMode: $("#tutorMode"),
   attemptCount: $("#attemptCount"),
   avgScore: $("#avgScore"),
@@ -194,15 +196,58 @@ function formatTime(ms) {
 }
 
 function setView(viewId) {
+  const viewChanged = state.currentView !== viewId;
   $$(".view").forEach((view) => view.classList.toggle("active", view.id === viewId));
   $$(".nav-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === viewId));
+  state.currentView = viewId;
   $("#viewTitle").textContent = {
     landingView: "SAT Practice",
     practiceView: "Practice Test",
     reviewView: "Review and Concepts",
     progressView: "Progress Tracker"
   }[viewId];
+  updateTutorForView(viewId);
+  if (viewChanged) resetTutorChat(viewId);
   if (viewId === "progressView") drawProgress();
+}
+
+const TUTOR_PROMPTS = {
+  practiceView: [
+    ["Hint", "Give me a small hint, not the answer."],
+    ["Concept", "Explain the concept behind this question."],
+    ["Eliminate", "Show me how to eliminate wrong choices."],
+    ["Answer", "Show the correct answer first at the top, then explain why it is correct."]
+  ],
+  reviewView: [
+    ["Practice plan", "Create a short practice plan based on my latest SAT attempt."],
+    ["Weakness plan", "Analyze my weak areas and give me an improvement plan."],
+    ["Next focus", "What should I focus on next, and why?"],
+    ["Score analysis", "Explain my score and concept breakdown in plain language."]
+  ]
+};
+
+function tutorContextLabel(viewId = state.currentView) {
+  return viewId === "reviewView" ? "review" : "practice";
+}
+
+function updateTutorForView(viewId = state.currentView) {
+  const slot = document.querySelector(`[data-tutor-slot="${tutorContextLabel(viewId)}"]`);
+  const shouldShowTutor = Boolean(slot);
+  els.tutorPanel.classList.toggle("hidden", !shouldShowTutor);
+  if (slot && els.tutorPanel.parentElement !== slot) {
+    slot.appendChild(els.tutorPanel);
+  }
+  renderQuickPrompts(viewId);
+}
+
+function renderQuickPrompts(viewId = state.currentView) {
+  const prompts = TUTOR_PROMPTS[viewId] || TUTOR_PROMPTS.practiceView;
+  els.quickPrompts.innerHTML = prompts.map(([label, prompt]) => (
+    `<button type="button" data-prompt="${escapeHtml(prompt)}">${label}</button>`
+  )).join("");
+  els.quickPrompts.querySelectorAll("button").forEach((button) => {
+    button.disabled = !isSignedIn();
+  });
 }
 
 function currentQuestion() {
@@ -381,6 +426,31 @@ function resetPracticeSession() {
   setView("landingView");
 }
 
+function resetTutorChat(viewId = state.currentView) {
+  els.chatLog.innerHTML = "";
+  els.chatInput.value = "";
+  if (viewId === "practiceView") {
+    addChatMessage("agent", "Ready when you are. Use a quick action or ask anything about this question.");
+  } else if (viewId === "reviewView") {
+    addChatMessage("agent", "I’m focused on your review now. Ask for a practice plan, weakness improvement plan, next focus steps, or score analysis.");
+  }
+}
+
+function latestAttemptSummary() {
+  const attempt = state.latestResult || state.attempts.at(-1);
+  if (!attempt) return null;
+  const focus = weakestConcept(attempt);
+  const totalRange = attempt.scoring?.totalScoreRange;
+  return {
+    score: attempt.score,
+    correct: attempt.correct,
+    total: attempt.total,
+    scoreRange: totalRange ? `${totalRange[0]}-${totalRange[1]}` : null,
+    focusConcept: focus?.concept || null,
+    focusCorrect: focus ? `${focus.correct}/${focus.total}` : null
+  };
+}
+
 function addChatMessage(role, text) {
   const message = document.createElement("div");
   message.className = `message ${role}`;
@@ -467,8 +537,6 @@ function startSet() {
   state.activeSet = shuffle(pool);
   state.currentIndex = 0;
   state.answers = {};
-  els.chatLog.innerHTML = "";
-  addChatMessage("agent", "I’m here. Ask for a hint, a concept check, or help eliminating choices. I’ll keep it clear and not overdo it.");
   trackEvent("practice_set_started", {
     bundleId: bundle.id,
     section: bundle.mode || "All",
@@ -477,6 +545,7 @@ function startSet() {
   startTimer();
   renderQuestion();
   setView("practiceView");
+  resetTutorChat("practiceView");
 }
 
 async function scoreAttemptOnServer(questionIds, answers) {
@@ -634,6 +703,20 @@ function renderMastery() {
   }).join("") : "<p>No practice history yet.</p>";
 }
 
+function setTutorConnectionState(status) {
+  els.tutorMode.textContent = {
+    connected: "Connected",
+    server: "OpenAI",
+    local: "Local",
+    locked: "Locked",
+  }[status] || "Local";
+  els.tutorMode.className = "";
+  els.tutorMode.classList.add(`tutor-mode-${status}`);
+  els.openAiLoginButton.classList.toggle("hidden", status === "connected" || status === "locked");
+  els.openAiLoginButton.disabled = status === "locked";
+  els.codexLogoutButton.classList.add("hidden");
+}
+
 function drawProgress() {
   renderMastery();
   const canvas = els.progressChart;
@@ -742,25 +825,27 @@ async function refreshAuthStatus() {
     const response = await fetch("/api/auth/openai-status");
     const data = await response.json();
     const signedIn = Boolean(state.user || data.signedIn);
-    els.openAiLoginButton.classList.toggle("hidden", !signedIn || data.codexConnected);
-    els.codexLogoutButton.classList.toggle("hidden", !signedIn || !data.codexConnected);
-    els.openAiLoginButton.disabled = !signedIn;
     if (data.codexConnected) {
+      setTutorConnectionState("connected");
       els.llmStatus.textContent = "SAT AI Tutor connected";
       els.llmDescription.textContent = "Ask Eddy will try ChatGPT/Codex first, then fall back if needed.";
       els.authStatus.textContent = "SAT AI Tutor is connected.";
     } else if (!signedIn) {
+      setTutorConnectionState("locked");
       els.authStatus.textContent = "Sign in or create an Eddy account to unlock SAT AI Tutor setup.";
     } else if (data.chatModelAvailable) {
+      setTutorConnectionState("server");
       els.llmStatus.textContent = "Server OpenAI ready";
-      els.llmDescription.textContent = "Ask Eddy can use the server OpenAI API. SAT AI Tutor connection is optional.";
-      els.authStatus.textContent = "Signed in. You can connect SAT AI Tutor, or use the configured server tutor.";
+      els.llmDescription.textContent = "Ask Eddy can use the server OpenAI API. Connect AI model to use ChatGPT/Codex when available.";
+      els.authStatus.textContent = "Signed in. Server OpenAI is ready; connect AI model for ChatGPT/Codex.";
     } else {
+      setTutorConnectionState("local");
       els.llmStatus.textContent = "Local tutor ready";
-      els.llmDescription.textContent = "Connect SAT AI Tutor to let Ask Eddy try ChatGPT/Codex first.";
-      els.authStatus.textContent = "Signed in. Connect SAT AI Tutor to enable LLM tutoring.";
+      els.llmDescription.textContent = "Connect AI model to let Ask Eddy try ChatGPT/Codex first.";
+      els.authStatus.textContent = "Signed in. Connect AI model to enable LLM tutoring.";
     }
   } catch {
+    setTutorConnectionState(isSignedIn() ? "local" : "locked");
     els.authStatus.textContent = "Could not check OpenAI status. Student login still works locally.";
   }
 }
@@ -776,10 +861,9 @@ function renderAuthUser() {
   els.signedInName.textContent = state.user?.name || "Student";
   els.signedInEmail.textContent = state.user?.email || "";
   if (!signedIn) {
+    setTutorConnectionState("locked");
     els.llmStatus.textContent = "Locked until sign in";
-    els.llmDescription.textContent = "Create or sign into an Eddy account to connect SAT AI Tutor.";
-    els.openAiLoginButton.classList.add("hidden");
-    els.codexLogoutButton.classList.add("hidden");
+    els.llmDescription.textContent = "Create or sign into an Eddy account to connect AI model.";
   }
   els.startTestButton.disabled = !signedIn;
   els.startTestButton.textContent = signedIn ? "Start set" : "Sign in to start";
@@ -789,6 +873,7 @@ function renderAuthUser() {
   els.quickPrompts.querySelectorAll("button").forEach((button) => {
     button.disabled = !signedIn;
   });
+  renderQuickPrompts(state.currentView);
 }
 
 async function loadCurrentUser() {
@@ -843,6 +928,7 @@ async function sendChat() {
   els.chatInput.value = "";
   addChatMessage("user", text);
   const question = currentQuestion();
+  const latestAttempt = latestAttemptSummary();
   const thinking = addChatMessage("agent", "Thinking...");
   try {
     const response = await fetch("/api/chat", {
@@ -850,8 +936,10 @@ async function sendChat() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         userMessage: text,
-        question,
-        concept: question?.concept,
+        question: state.currentView === "practiceView" ? question : null,
+        concept: state.currentView === "practiceView" ? question?.concept : latestAttempt?.focusConcept,
+        pageContext: state.currentView,
+        latestAttempt,
         selectedAnswer: state.answers[question?.id]
       })
     });
@@ -902,20 +990,20 @@ function bindEvents() {
   });
 
   els.openAiLoginButton.addEventListener("click", async () => {
-    els.authStatus.textContent = "Starting SAT AI Tutor login...";
+    els.authStatus.textContent = "Starting AI model login...";
     try {
       const response = await fetch("/api/auth/codex/start");
       const data = await response.json();
       if (!data.authUrl) throw new Error("Missing login URL");
       location.href = data.authUrl;
     } catch {
-      els.authStatus.textContent = "Could not start SAT AI Tutor login. Local tutor fallback is still available.";
+      els.authStatus.textContent = "Could not start AI model login. Local tutor fallback is still available.";
     }
   });
 
   els.codexLogoutButton.addEventListener("click", async () => {
     await fetch("/api/auth/codex/logout", { method: "POST" });
-    els.tutorMode.textContent = "Local";
+    setTutorConnectionState("local");
     await refreshAuthStatus();
   });
 
@@ -935,12 +1023,18 @@ function bindEvents() {
   els.bundleFilter.addEventListener("change", () => setBundle(els.bundleFilter.value));
   els.startTestButton.addEventListener("click", startSet);
   els.previousButton.addEventListener("click", () => {
-    state.currentIndex = Math.max(0, state.currentIndex - 1);
+    const nextIndex = Math.max(0, state.currentIndex - 1);
+    const changedQuestion = nextIndex !== state.currentIndex;
+    state.currentIndex = nextIndex;
     renderQuestion();
+    if (changedQuestion) resetTutorChat("practiceView");
   });
   els.nextButton.addEventListener("click", () => {
-    state.currentIndex = Math.min(state.activeSet.length - 1, state.currentIndex + 1);
+    const nextIndex = Math.min(state.activeSet.length - 1, state.currentIndex + 1);
+    const changedQuestion = nextIndex !== state.currentIndex;
+    state.currentIndex = nextIndex;
     renderQuestion();
+    if (changedQuestion) resetTutorChat("practiceView");
   });
   els.submitButton.addEventListener("click", scoreActiveSet);
   els.sendChatButton.addEventListener("click", sendChat);

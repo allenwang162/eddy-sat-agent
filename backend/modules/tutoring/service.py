@@ -10,6 +10,7 @@ def tutor_system_prompt():
         "You are Eddy, a calm SAT tutor inside a practice app.",
         "Your audience is high school students. Sound friendly, direct, and encouraging without being childish.",
         "Coach with hints first. Do not reveal the final answer unless the student explicitly asks.",
+        "When the student explicitly asks for the answer, start the response with 'Correct answer: ...' as the first line, then explain why it is correct.",
         "Explain the tested concept, the trap answer pattern, and one next step.",
         "Keep replies concise and age-appropriate.",
         "Use plain paragraphs and short bullet lists. Do not use Markdown heading syntax such as #, ##, or ###.",
@@ -36,7 +37,21 @@ def clean_tutor_text(text):
 def local_tutor_reply(payload):
     concept = payload.get("concept")
     question = payload.get("question") or {}
+    latest_attempt = payload.get("latestAttempt") or {}
+    page_context = payload.get("pageContext")
     user_message = payload.get("userMessage")
+    answer_request = "answer" in (user_message or "").lower()
+    if page_context == "reviewView":
+        focus = latest_attempt.get("focusConcept") or "your lowest-scoring skill"
+        score = latest_attempt.get("scoreRange") or f"{latest_attempt.get('score', 0)}%"
+        accuracy = f"{latest_attempt.get('correct', 0)} of {latest_attempt.get('total', 0)} correct"
+        return "\n\n".join([
+            "Let's turn the result into a practical study plan.",
+            f"Latest result: {score}, with {accuracy}.",
+            f"Main focus: {focus}. Start by reviewing missed questions in that area, then complete a short targeted set and explain each miss in one sentence.",
+            "Next steps: 1) redo two missed questions, 2) ask for the concept pattern, 3) practice three similar questions, 4) check whether the same mistake repeats.",
+            f'Your question was: "{user_message}".' if user_message else "",
+        ]).strip()
     hints = {
         "Linear equations": "Isolate the variable one operation at a time. Keep both sides balanced and check the result in the original equation.",
         "Systems of equations": "Look for a way to eliminate one variable. If the coefficients line up, add or subtract equations before substituting.",
@@ -49,6 +64,19 @@ def local_tutor_reply(payload):
     }
     base = hints.get(concept, "Start by identifying the tested concept, then remove answer choices that do not match the exact wording of the question.")
     prompt = question.get("prompt", "")
+    if answer_request and question.get("answer"):
+        answer = question.get("answer")
+        choices = question.get("choices") or []
+        matching_choice = next((choice for choice in choices if str(choice).startswith(f"{answer})")), None)
+        answer_line = f"Correct answer: {answer}"
+        if matching_choice:
+            answer_line = f"Correct answer: {matching_choice}"
+        return "\n\n".join(part for part in [
+            answer_line,
+            f"Why: {question.get('explanation') or question.get('logic') or base}",
+            f"Concept focus: {concept or 'SAT reasoning'}. {base}",
+            "Next step: compare the correct choice with the wording of the question, then identify why one tempting wrong choice fails.",
+        ] if part)
     return "\n\n".join(part for part in [
         "Let's work this without giving away the answer too quickly.",
         f"Concept focus: {concept or 'SAT reasoning'}. {base}",
@@ -83,6 +111,8 @@ def codex_tutor_reply(payload, user_id):
                     "studentQuestion": payload.get("userMessage"),
                     "satQuestion": payload.get("question"),
                     "concept": payload.get("concept"),
+                    "pageContext": payload.get("pageContext"),
+                    "latestAttempt": payload.get("latestAttempt"),
                     "selectedAnswer": payload.get("selectedAnswer"),
                 }),
             }],
@@ -125,6 +155,8 @@ def openai_tutor_reply(payload):
                 "studentQuestion": payload.get("userMessage"),
                 "satQuestion": payload.get("question"),
                 "concept": payload.get("concept"),
+                "pageContext": payload.get("pageContext"),
+                "latestAttempt": payload.get("latestAttempt"),
                 "selectedAnswer": payload.get("selectedAnswer"),
             })},
         ],
