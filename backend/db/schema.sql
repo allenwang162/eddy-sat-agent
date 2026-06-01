@@ -62,6 +62,15 @@ create table if not exists exam_bundle_questions (
   primary key (bundle_id, question_id)
 );
 
+create table if not exists exam_scoring_tables (
+  id text primary key,
+  practice_test integer not null,
+  score_type text not null,
+  payload jsonb not null,
+  source text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists attempts (
   id text primary key,
   user_id text not null references users(id) on delete cascade,

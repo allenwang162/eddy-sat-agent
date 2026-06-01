@@ -18,6 +18,7 @@ from backend.modules.auth.service import (
 from backend.modules.oauth.service import create_codex_authorize_url, read_user_codex_auth, write_user_codex_auth
 from backend.modules.progress.service import get_progress_for_user, save_progress_for_user
 from backend.modules.questions.service import list_questions
+from backend.modules.scoring.service import score_practice_attempt
 from backend.modules.tutoring.service import codex_tutor_reply, local_tutor_reply, openai_tutor_reply
 from backend.repositories.sqlite_repositories import init_database
 from backend.shared.observability import configure_logging, get_logger, log_event, request_id_var, user_hash
@@ -206,6 +207,22 @@ async def api_events(request: Request):
         properties=body.get("properties", {}),
     )
     return {"ok": True}
+
+
+@app.post("/api/scoring/score")
+async def api_score_attempt(request: Request):
+    session = require_session(request)
+    scoring = score_practice_attempt(await request.json())
+    log_event(
+        logger,
+        "scoring.score_attempt",
+        user_hash=user_hash(session["user"]["id"]),
+        practice_test=scoring.get("practiceTest"),
+        score_type=scoring.get("scoreType"),
+        correct=scoring.get("correct"),
+        total=scoring.get("total"),
+    )
+    return {"scoring": scoring}
 
 
 @app.post("/api/chat")

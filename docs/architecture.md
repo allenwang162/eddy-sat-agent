@@ -32,6 +32,7 @@
 
 - `data/seed/questionBank.json` is versionable SAT-style seed content.
 - `data/seed/extracted-sat-practice-test-4.json` is local extracted PDF text for development.
+- `data/seed/scoringTables.json` stores versionable official score conversion ranges keyed by practice test.
 - `data/runtime/eddy.db` stores local users, sessions, encrypted per-user Codex tokens, question-bank imports, and per-user progress.
 
 For production, replace the local SQLite adapter with Postgres. Keep `data/seed/` as import/bootstrap content.
@@ -45,6 +46,7 @@ The backend is organized by domain module:
 - `backend/modules/tutoring`: Ask Eddy LLM orchestration and fallback tutor hints
 - `backend/modules/progress`: attempt history and concept stats
 - `backend/modules/questions`: question-bank reads
+- `backend/modules/scoring`: raw score totals and official score-range conversion
 
 The FastAPI app in `app.py` handles HTTP routing and delegates business behavior to service modules. Repositories hide storage details, so `backend/repositories/sqlite_repositories.py` can be replaced with a Postgres repository without rewriting the UI or business services.
 

@@ -31,7 +31,8 @@ const SAT_BLUEPRINT = [
       "Math: Geometry and Trigonometry"
     ],
     bundles: [
-      { id: "full-pt4", title: "Practice Test 4 Full Bank", source: "College Board Practice Test 4 PDF", status: "available", mode: "All", size: 120 },
+      { id: "full-pt4", title: "Practice Test 4 Full Bank", source: "College Board Practice Test 4 PDF", status: "available", mode: "All", practiceTest: 4, size: 120 },
+      { id: "full-pt5", title: "Practice Test 5 Full Bank", source: "College Board Practice Test 5 PDF", status: "available", mode: "All", practiceTest: 5, size: 120 },
       { id: "full-adaptive-1", title: "Adaptive Full SAT Bundle", source: "Coming when more tests are imported", status: "locked", mode: "All", size: 0 },
       { id: "full-review-1", title: "Weakness Review Bundle", source: "Generated from student history", status: "locked", mode: "All", size: 0 }
     ]
@@ -50,7 +51,8 @@ const SAT_BLUEPRINT = [
       "Expression of Ideas"
     ],
     bundles: [
-      { id: "rw-pt4", title: "Practice Test 4 Reading/Writing", source: "College Board Practice Test 4 PDF", status: "available", mode: "Reading and Writing", size: 66 },
+      { id: "rw-pt4", title: "Practice Test 4 Reading/Writing", source: "College Board Practice Test 4 PDF", status: "available", mode: "Reading and Writing", practiceTest: 4, size: 66 },
+      { id: "rw-pt5", title: "Practice Test 5 Reading/Writing", source: "College Board Practice Test 5 PDF", status: "available", mode: "Reading and Writing", practiceTest: 5, size: 66 },
       { id: "rw-domain-craft", title: "Craft and Structure Drill", source: "Coming from generated bank", status: "locked", mode: "Reading and Writing", size: 0 },
       { id: "rw-grammar", title: "Grammar and Expression Drill", source: "Coming from generated bank", status: "locked", mode: "Reading and Writing", size: 0 }
     ]
@@ -69,7 +71,8 @@ const SAT_BLUEPRINT = [
       "Geometry and Trigonometry"
     ],
     bundles: [
-      { id: "math-pt4", title: "Practice Test 4 Math", source: "College Board Practice Test 4 PDF", status: "available", mode: "Math", size: 54 },
+      { id: "math-pt4", title: "Practice Test 4 Math", source: "College Board Practice Test 4 PDF", status: "available", mode: "Math", practiceTest: 4, size: 54 },
+      { id: "math-pt5", title: "Practice Test 5 Math", source: "College Board Practice Test 5 PDF", status: "available", mode: "Math", practiceTest: 5, size: 54 },
       { id: "math-algebra", title: "Algebra and Functions Drill", source: "Coming from generated bank", status: "locked", mode: "Math", size: 0 },
       { id: "math-data-geo", title: "Data, Geometry, and Trig Drill", source: "Coming from generated bank", status: "locked", mode: "Math", size: 0 }
     ]
@@ -248,7 +251,11 @@ function renderBundleFilter() {
 
 function questionsForBundle(bundle) {
   const mode = bundle.mode || "All";
-  return mode === "All" ? state.questions : state.questions.filter((question) => question.section === mode);
+  return state.questions.filter((question) => {
+    if (mode !== "All" && question.section !== mode) return false;
+    if (bundle.practiceTest && question.metadata?.practiceTest !== bundle.practiceTest) return false;
+    return true;
+  });
 }
 
 function bundleQuestionCount(bundle) {
@@ -470,7 +477,22 @@ function startSet() {
   setView("practiceView");
 }
 
-function scoreActiveSet() {
+async function scoreAttemptOnServer(questionIds, answers) {
+  try {
+    const response = await fetch("/api/scoring/score", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ questionIds, answers })
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.scoring || null;
+  } catch {
+    return null;
+  }
+}
+
+async function scoreActiveSet() {
   clearInterval(state.timerId);
   const results = state.activeSet.map((question) => {
     const selected = state.answers[question.id] || "";
@@ -490,6 +512,7 @@ function scoreActiveSet() {
   });
   const correct = results.filter((item) => item.correct).length;
   const score = Math.round((correct / results.length) * 100);
+  const scoring = await scoreAttemptOnServer(state.activeSet.map((question) => question.id), state.answers);
   const attempt = {
     id: crypto.randomUUID(),
     date: new Date().toISOString(),
@@ -497,6 +520,7 @@ function scoreActiveSet() {
     correct,
     total: results.length,
     durationMs: Date.now() - state.startedAt,
+    scoring,
     results
   };
   state.latestResult = attempt;
@@ -557,8 +581,18 @@ function renderReview() {
     return;
   }
 
-  els.scoreBig.textContent = `${attempt.score}%`;
-  els.scoreDetail.textContent = `${attempt.correct} of ${attempt.total} correct in ${formatTime(attempt.durationMs)}.`;
+  const totalRange = attempt.scoring?.totalScoreRange;
+  const sectionLines = Object.entries(attempt.scoring?.sections || {})
+    .map(([section, value]) => {
+      const range = value.scoreRange ? `, score range ${value.scoreRange[0]}-${value.scoreRange[1]}` : "";
+      return `${section}: ${value.raw}/${value.total} raw${range}`;
+    });
+  els.scoreBig.textContent = totalRange ? `${totalRange[0]}-${totalRange[1]}` : `${attempt.score}%`;
+  els.scoreDetail.textContent = [
+    `${attempt.correct} of ${attempt.total} correct in ${formatTime(attempt.durationMs)}.`,
+    totalRange ? `Official paper-test SAT score range for Practice Test ${attempt.scoring.practiceTest}.` : "",
+    ...sectionLines
+  ].filter(Boolean).join(" ");
 
   const latestStats = conceptStatsFromAttempts([attempt]);
   els.conceptBreakdown.innerHTML = Object.entries(latestStats).map(([concept, value]) => {

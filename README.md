@@ -109,13 +109,24 @@ After importing or regenerating exam questions, validate the seed bank before us
 
 ```bash
 python3 scripts/validate_question_bank.py \
-  --expect-count total=120 \
-  --expect-count Math=54 \
-  --expect-count "Reading and Writing=66" \
-  --expect-count free-response=14
+  --expect-count total=240 \
+  --expect-count Math=108 \
+  --expect-count "Reading and Writing=132" \
+  --expect-count free-response=28 \
+  --warnings-as-errors
 ```
 
 The harness catches common PDF import/display problems: missing fields, duplicate IDs, empty prompts, multiple-choice items without four choices, free-response items with choice keys, embedded choices trapped in prompts, likely graph/header artifacts, and missing figure images.
+
+## Scoring
+
+Practice Test 5 includes the official paper digital SAT score-range conversion table in `data/seed/scoringTables.json`. The scoring endpoint lives behind the scoring service boundary:
+
+```bash
+POST /api/scoring/score
+```
+
+The frontend sends the active question IDs and answers, and `backend.modules.scoring.service` calculates raw module totals, section score ranges, and a total SAT score range when a full Reading/Writing + Math attempt has a scoring table.
 
 ## Documentation
 
