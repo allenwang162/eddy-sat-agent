@@ -12,6 +12,7 @@ htmlcov/
 .venv/
 venv/
 env/
+.tools/
 
 # Local environment and secrets
 .env
@@ -33,6 +34,13 @@ logs/
 build/
 dist/
 *.egg-info/
+
+# Next.js UI
+ui/node_modules/
+ui/.next/
+ui/out/
+ui/.env.local
+ui/.env.*.local
 
 # Editor and OS files
 .DS_Store
