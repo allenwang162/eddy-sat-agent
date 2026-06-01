@@ -84,6 +84,7 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const els = {
   loginPanel: $("#loginPanel"),
+  accountMenu: $("#accountMenu"),
   profileTitle: $("#profileTitle"),
   signedOutStep: $("#signedOutStep"),
   signedInStep: $("#signedInStep"),
@@ -164,6 +165,7 @@ function trackEvent(event, properties = {}) {
 function requireSignedIn(action = "practice") {
   if (isSignedIn()) return true;
   els.authStatus.textContent = `Sign in or create an Eddy account to ${action}.`;
+  if (els.accountMenu) els.accountMenu.open = true;
   els.loginPanel.classList.add("attention");
   setTimeout(() => els.loginPanel.classList.remove("attention"), 900);
   return false;
@@ -744,19 +746,19 @@ async function refreshAuthStatus() {
     els.codexLogoutButton.classList.toggle("hidden", !signedIn || !data.codexConnected);
     els.openAiLoginButton.disabled = !signedIn;
     if (data.codexConnected) {
-      els.llmStatus.textContent = "ChatGPT/Codex connected";
+      els.llmStatus.textContent = "SAT AI Tutor connected";
       els.llmDescription.textContent = "Ask Eddy will try ChatGPT/Codex first, then fall back if needed.";
-      els.authStatus.textContent = "ChatGPT/Codex is connected for LLM tutoring.";
+      els.authStatus.textContent = "SAT AI Tutor is connected.";
     } else if (!signedIn) {
-      els.authStatus.textContent = "Sign in or create an Eddy account to unlock LLM tutor setup.";
+      els.authStatus.textContent = "Sign in or create an Eddy account to unlock SAT AI Tutor setup.";
     } else if (data.chatModelAvailable) {
       els.llmStatus.textContent = "Server OpenAI ready";
-      els.llmDescription.textContent = "Ask Eddy can use the server OpenAI API. ChatGPT/Codex is optional.";
-      els.authStatus.textContent = "Signed in. You can connect ChatGPT/Codex, or use the configured server tutor.";
+      els.llmDescription.textContent = "Ask Eddy can use the server OpenAI API. SAT AI Tutor connection is optional.";
+      els.authStatus.textContent = "Signed in. You can connect SAT AI Tutor, or use the configured server tutor.";
     } else {
       els.llmStatus.textContent = "Local tutor ready";
-      els.llmDescription.textContent = "Connect ChatGPT/Codex to let Ask Eddy try LLM tutoring first.";
-      els.authStatus.textContent = "Signed in. Connect ChatGPT/Codex to enable LLM tutoring.";
+      els.llmDescription.textContent = "Connect SAT AI Tutor to let Ask Eddy try ChatGPT/Codex first.";
+      els.authStatus.textContent = "Signed in. Connect SAT AI Tutor to enable LLM tutoring.";
     }
   } catch {
     els.authStatus.textContent = "Could not check OpenAI status. Student login still works locally.";
@@ -775,7 +777,7 @@ function renderAuthUser() {
   els.signedInEmail.textContent = state.user?.email || "";
   if (!signedIn) {
     els.llmStatus.textContent = "Locked until sign in";
-    els.llmDescription.textContent = "Create or sign into an Eddy account first.";
+    els.llmDescription.textContent = "Create or sign into an Eddy account to connect SAT AI Tutor.";
     els.openAiLoginButton.classList.add("hidden");
     els.codexLogoutButton.classList.add("hidden");
   }
@@ -831,6 +833,7 @@ async function submitAuth(mode) {
   renderAuthUser();
   await loadProgress();
   await refreshAuthStatus();
+  if (els.accountMenu) els.accountMenu.open = false;
 }
 
 async function sendChat() {
@@ -873,10 +876,21 @@ async function sendChat() {
 }
 
 function bindEvents() {
+  document.addEventListener("click", (event) => {
+    if (!els.accountMenu?.open) return;
+    if (els.accountMenu.contains(event.target)) return;
+    els.accountMenu.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.accountMenu?.open) {
+      els.accountMenu.open = false;
+    }
+  });
+
   els.loginButton.addEventListener("click", () => submitAuth("login"));
   els.registerButton.addEventListener("click", () => submitAuth("register"));
   els.logoutButton.addEventListener("click", async () => {
-    els.authStatus.textContent = "Signing out and disconnecting ChatGPT/Codex...";
+    els.authStatus.textContent = "Signing out and disconnecting SAT AI Tutor...";
     await fetch("/api/auth/logout", { method: "POST" });
     state.user = null;
     localStorage.removeItem("eddyUser");
@@ -888,14 +902,14 @@ function bindEvents() {
   });
 
   els.openAiLoginButton.addEventListener("click", async () => {
-    els.authStatus.textContent = "Starting ChatGPT/Codex login...";
+    els.authStatus.textContent = "Starting SAT AI Tutor login...";
     try {
       const response = await fetch("/api/auth/codex/start");
       const data = await response.json();
       if (!data.authUrl) throw new Error("Missing login URL");
       location.href = data.authUrl;
     } catch {
-      els.authStatus.textContent = "Could not start ChatGPT/Codex login. Local tutor fallback is still available.";
+      els.authStatus.textContent = "Could not start SAT AI Tutor login. Local tutor fallback is still available.";
     }
   });
 

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Eddy SAT Agent</title>
-    <link rel="stylesheet" href="/styles.css?v=20260601-pt5-scoring">
+    <link rel="stylesheet" href="/styles.css?v=20260601-account-menu">
   </head>
   <body>
     <div class="app-shell">
@@ -30,58 +30,52 @@
           <span id="avgScore">0%</span>
           <small>Average</small>
         </div>
-      </header>
 
-      <aside class="sidebar">
-
-        <section class="login-panel" id="loginPanel">
-          <div class="profile-top">
-            <div class="profile-avatar">E</div>
-            <div>
-              <p class="eyebrow">Student Hub</p>
-              <h3 id="profileTitle">Ready to practice?</h3>
-            </div>
-          </div>
-          <div id="signedOutStep" class="hub-step">
-            <div class="field-stack">
-              <label for="studentName">Student</label>
-              <input id="studentName" type="text" autocomplete="name" placeholder="Name">
-            </div>
-            <div class="field-stack">
-              <label for="studentEmail">Account</label>
-              <input id="studentEmail" type="email" autocomplete="email" placeholder="student@example.com">
-            </div>
-            <div class="field-stack" id="passwordField">
-              <label for="studentPassword">Password</label>
-              <input id="studentPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters">
-            </div>
-            <div class="auth-actions">
-              <button id="loginButton" class="primary-button" type="button">Sign in</button>
-              <button id="registerButton" class="secondary-button" type="button">Create</button>
-            </div>
-          </div>
-          <div id="signedInStep" class="hub-step hidden">
-            <div class="student-card">
-              <span>Signed in as</span>
-              <strong id="signedInName">Student</strong>
-              <small id="signedInEmail">student@example.com</small>
-            </div>
-            <div class="llm-card">
+        <details class="account-menu" id="accountMenu">
+          <summary>
+            <span class="profile-avatar compact">E</span>
+            <span>Account</span>
+          </summary>
+          <section class="login-panel" id="loginPanel">
+            <div class="profile-top">
+              <div class="profile-avatar">E</div>
               <div>
-                <span>LLM tutor</span>
-                <strong id="llmStatus">Local tutor ready</strong>
+                <p class="eyebrow">Student Hub</p>
+                <h3 id="profileTitle">Ready to practice?</h3>
               </div>
-              <p id="llmDescription">Connect ChatGPT/Codex to let Ask Eddy try LLM tutoring first.</p>
             </div>
-            <div class="profile-actions">
-              <button id="openAiLoginButton" class="secondary-button" type="button">Connect ChatGPT/Codex</button>
-              <button id="codexLogoutButton" class="secondary-button hidden" type="button">Disconnect ChatGPT/Codex</button>
-              <button id="logoutButton" class="secondary-button" type="button">Sign out</button>
+            <div id="signedOutStep" class="hub-step">
+              <div class="field-stack">
+                <label for="studentName">Student</label>
+                <input id="studentName" type="text" autocomplete="name" placeholder="Name">
+              </div>
+              <div class="field-stack">
+                <label for="studentEmail">Account</label>
+                <input id="studentEmail" type="email" autocomplete="email" placeholder="student@example.com">
+              </div>
+              <div class="field-stack" id="passwordField">
+                <label for="studentPassword">Password</label>
+                <input id="studentPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+              </div>
+              <div class="auth-actions">
+                <button id="loginButton" class="primary-button" type="button">Sign in</button>
+                <button id="registerButton" class="secondary-button" type="button">Create</button>
+              </div>
             </div>
-          </div>
-          <p id="authStatus" class="fine-print">Students sign in here; the tutor uses OpenAI from the server when configured.</p>
-        </section>
-      </aside>
+            <div id="signedInStep" class="hub-step hidden">
+              <div class="student-card">
+                <span>Signed in as</span>
+                <strong id="signedInName">Student</strong>
+                <small id="signedInEmail">student@example.com</small>
+              </div>
+              <div class="profile-actions">
+                <button id="logoutButton" class="secondary-button" type="button">Sign out</button>
+              </div>
+            </div>
+            <p id="authStatus" class="fine-print">Students sign in here; the tutor uses OpenAI from the server when configured.</p>
+          </section>
+        </details>
+      </header>
 
       <main>
         <section class="topbar">
@@ -141,10 +135,18 @@
             <aside class="tutor-panel">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">SAT tutor</p>
+                  <p class="eyebrow">SAT AI Tutor</p>
                   <h3>Ask Eddy</h3>
+                  <p id="llmDescription" class="tutor-status-copy">Connect SAT AI Tutor to let Ask Eddy try ChatGPT/Codex first.</p>
                 </div>
-                <span id="tutorMode">Local</span>
+                <div class="tutor-status">
+                  <span id="tutorMode">Local</span>
+                  <strong id="llmStatus">Local tutor ready</strong>
+                </div>
+              </div>
+              <div class="tutor-connect-actions">
+                <button id="openAiLoginButton" class="secondary-button" type="button">Connect SAT AI Tutor</button>
+                <button id="codexLogoutButton" class="secondary-button hidden" type="button">Disconnect SAT AI Tutor</button>
               </div>
               <div id="chatLog" class="chat-log" aria-live="polite"></div>
               <div class="quick-prompts" aria-label="Quick tutor prompts">
@@ -194,6 +196,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=20260601-pt5-scoring"></script>
+    <script src="/app.js?v=20260601-account-menu-close"></script>
   </body>
 </html>
