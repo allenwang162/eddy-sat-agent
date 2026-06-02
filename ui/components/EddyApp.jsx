@@ -644,7 +644,7 @@ export default function EddyApp() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${currentView !== "landingView" ? "workspace-shell" : ""}`}>
       <Header
         user={user}
         accountOpen={accountOpen}
@@ -778,8 +778,8 @@ function Header({ user, accountOpen, setAccountOpen, authForm, setAuthForm, auth
   return (
     <header className="app-header">
       <div className="brand">
-        <div className="brand-mark"><img src="/assets/favicon.png" alt="Eddy SAT GOAT logo" /></div>
-        <div><h1>Eddy SAT GOAT</h1><p>Practice with an AI tutor.</p></div>
+        <div className="brand-mark"><img src="/assets/favicon.png" alt="Eddy SAT logo" /></div>
+        <div><h1>Eddy SAT</h1><p>Practice with an AI tutor.</p></div>
       </div>
       <nav className="top-nav" aria-label="SAT app sections">
         {[
@@ -798,19 +798,19 @@ function Header({ user, accountOpen, setAccountOpen, authForm, setAuthForm, auth
           event.stopPropagation();
           setAccountOpen((open) => !open);
         }}>
-          <div className="profile-avatar compact"><img src="/assets/favicon.png" alt="Eddy SAT GOAT logo" /></div>
+          <div className="profile-avatar compact"><img src="/assets/favicon.png" alt="Eddy SAT logo" /></div>
           <span>Account</span>
         </summary>
         <section className="login-panel" id="loginPanel" onClick={(event) => event.stopPropagation()}>
           <div className="profile-top">
-            <div className="profile-avatar"><img src="/assets/favicon.png" alt="Eddy SAT GOAT logo" /></div>
+            <div className="profile-avatar"><img src="/assets/favicon.png" alt="Eddy SAT logo" /></div>
             <div><p className="eyebrow">Student Hub</p><h3>{user ? user.name || "Signed in" : "Ready to practice?"}</h3></div>
           </div>
           {!user ? (
             <div className="hub-step">
-              <Field label="Student" value={authForm.name} placeholder="Name" autoComplete="name" onChange={(name) => setAuthForm((form) => ({ ...form, name }))} />
-              <Field label="Account" type="email" value={authForm.email} placeholder="student@example.com" autoComplete="email" onChange={(email) => setAuthForm((form) => ({ ...form, email }))} />
-              <Field label="Password" type="password" value={authForm.password} placeholder="At least 8 characters" autoComplete="current-password" onChange={(password) => setAuthForm((form) => ({ ...form, password }))} />
+              <Field id="studentName" label="Student" value={authForm.name} placeholder="Name" autoComplete="name" onChange={(name) => setAuthForm((form) => ({ ...form, name }))} />
+              <Field id="studentEmail" label="Account" type="email" value={authForm.email} placeholder="student@example.com" autoComplete="email" onChange={(email) => setAuthForm((form) => ({ ...form, email }))} />
+              <Field id="studentPassword" label="Password" type="password" value={authForm.password} placeholder="At least 8 characters" autoComplete="current-password" onChange={(password) => setAuthForm((form) => ({ ...form, password }))} />
               <div className="auth-actions">
                 <button className="primary-button" type="button" onClick={() => submitAuth("login")}>Sign in</button>
                 <button className="secondary-button" type="button" onClick={() => submitAuth("register")}>Create</button>
@@ -829,11 +829,11 @@ function Header({ user, accountOpen, setAccountOpen, authForm, setAuthForm, auth
   );
 }
 
-function Field({ label, type = "text", value, placeholder, autoComplete, onChange }) {
+function Field({ id, label, type = "text", value, placeholder, autoComplete, onChange }) {
   return (
     <div className="field-stack">
-      <label>{label}</label>
-      <input type={type} value={value} placeholder={placeholder} autoComplete={autoComplete} onChange={(event) => onChange(event.target.value)} />
+      <label htmlFor={id}>{label}</label>
+      <input id={id} aria-label={label} type={type} value={value} placeholder={placeholder} autoComplete={autoComplete} onChange={(event) => onChange(event.target.value)} />
     </div>
   );
 }
@@ -887,6 +887,21 @@ function PracticeView({ activeSet, currentIndex, setCurrentIndex, currentQuestio
     setCurrentIndex(index);
     resetTutor();
   };
+  if (!activeSet.length || !currentQuestion) {
+    return (
+      <article className="question-area question-empty">
+        <div className="question-meta">
+          <span>Practice</span>
+          <span>Ready</span>
+        </div>
+        <div className="empty-practice-state">
+          <p className="eyebrow">No active set</p>
+          <h3>Start a practice set to begin.</h3>
+          <p>Choose a section and bundle above, then click <strong>Start set</strong>. Your first question will appear here with the timer, choices, and Ask Eddy ready beside it.</p>
+        </div>
+      </article>
+    );
+  }
   return (
     <article className="question-area">
       <div className="question-meta">

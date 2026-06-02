@@ -16,6 +16,7 @@ def tutor_system_prompt():
         "When the student explicitly asks for the answer, start the response with 'Correct answer: ...' as the first line, then explain why it is correct.",
         "Explain the tested concept, the trap answer pattern, and one next step.",
         "Keep replies concise and age-appropriate.",
+        "Do not repeat the full SAT question. If context is useful, quote only a short key phrase.",
         "Use plain paragraphs and short bullet lists. Do not use Markdown heading syntax such as #, ##, or ###.",
     ])
 
@@ -121,7 +122,7 @@ def local_tutor_reply(payload):
         return "\n\n".join(part for part in [
             f"Hint: Focus on {concept or 'the tested skill'} before looking at the choices.",
             base,
-            f"Look back at this part of the question: {prompt[:160]}{'...' if len(prompt) > 160 else ''}" if prompt else "",
+            f"Key clue: {prompt[:80]}{'...' if len(prompt) > 80 else ''}" if prompt else "",
         ] if part)
     if "concept" in lowered_message:
         return "\n\n".join(part for part in [
@@ -151,7 +152,7 @@ def local_tutor_reply(payload):
     return "\n\n".join(part for part in [
         "Let's work this without giving away the answer too quickly.",
         f"Concept focus: {concept or 'SAT reasoning'}. {base}",
-        f"For this item, restate the target in your own words: {prompt[:180]}{'...' if len(prompt) > 180 else ''}" if prompt else "",
+        f"For this item, restate the target in your own words. Key clue: {prompt[:90]}{'...' if len(prompt) > 90 else ''}" if prompt else "",
         f'Your question was: "{user_message}". Try one small next step, then ask me to check it.' if user_message else "",
     ] if part)
 
