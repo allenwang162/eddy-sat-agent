@@ -211,6 +211,18 @@ function setView(viewId) {
   if (viewId === "progressView") drawProgress();
 }
 
+function isProtectedView(viewId) {
+  return ["practiceView", "reviewView", "progressView"].includes(viewId);
+}
+
+function guardedSetView(viewId) {
+  if (isProtectedView(viewId) && !requireSignedIn("view this section")) {
+    setView("landingView");
+    return;
+  }
+  setView(viewId);
+}
+
 const TUTOR_PROMPTS = {
   practiceView: [
     { label: "Hint", icon: "?", tone: "hint", prompt: "Start with 'Hint:' on the first line. Give me a small hint, not the answer." },
@@ -899,6 +911,19 @@ function renderAuthUser() {
     setTutorConnectionState("locked");
     els.llmStatus.textContent = "Locked until sign in";
     els.llmDescription.textContent = "Create or sign into an Eddy account to connect AI model.";
+    clearInterval(state.timerId);
+    state.timerId = null;
+    state.activeSet = [];
+    state.currentIndex = 0;
+    state.answers = {};
+    state.startedAt = null;
+    els.timer.textContent = "00:00";
+    els.questionSection.textContent = "Section";
+    els.questionConcept.textContent = "Concept";
+    els.questionCounter.textContent = "Question 1";
+    els.questionPrompt.textContent = "";
+    els.choices.innerHTML = "";
+    if (isProtectedView(state.currentView)) setView("landingView");
   }
   els.startTestButton.disabled = !signedIn;
   els.startTestButton.textContent = signedIn ? "Start set" : "Sign in to start";
@@ -1042,7 +1067,10 @@ function bindEvents() {
     await refreshAuthStatus();
   });
 
-  $$(".nav-tab").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
+  $$(".nav-tab").forEach((tab) => tab.addEventListener("click", (event) => {
+    event.stopPropagation();
+    guardedSetView(tab.dataset.view);
+  }));
   els.sectionFilter.addEventListener("change", () => {
     const matchingSubject = SAT_BLUEPRINT.find((subject) => subject.section === els.sectionFilter.value);
     state.selectedSubject = matchingSubject?.id || "full";
