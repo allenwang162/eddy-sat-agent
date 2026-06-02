@@ -43,6 +43,6 @@ Next.js owns the browser app:
 
 - `ui/app/page.jsx` renders the current app shell.
 - `ui/app/globals.css` contains the current styles.
-- `ui/public/app.js` contains the current browser behavior.
+- `ui/components/EddyApp.jsx` contains the current browser behavior as React state and components.
 
-FastAPI remains API-only from the browser's point of view. Future UI work can move one area at a time into dedicated React components, starting with the tutor panel or practice question view.
+FastAPI remains API-only from the browser's point of view. Future UI work can split `EddyApp` into smaller focused components and hooks as the product grows.

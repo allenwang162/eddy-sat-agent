@@ -98,10 +98,22 @@ def api_auth_me(request: Request):
 @app.get("/api/auth/openai-status")
 def api_openai_status(request: Request):
     session = session_from_request(request)
+    is_codex_connected = codex_connected(session["user"])
+    chat_model_available = bool(env.OPENAI_API_KEY)
     return {
-        "chatModelAvailable": bool(env.OPENAI_API_KEY),
+        "chatModelAvailable": chat_model_available,
         "signedIn": bool(session["user"]),
-        "codexConnected": codex_connected(session["user"]),
+        "codexConnected": is_codex_connected,
+        "tutorProvider": "codex" if is_codex_connected else "openai" if chat_model_available else "local",
+        "tutorModel": (
+            env.CODEX_MODEL
+            if is_codex_connected and env.CODEX_MODEL
+            else "ChatGPT/Codex"
+            if is_codex_connected
+            else env.OPENAI_MODEL
+            if chat_model_available
+            else "Local fallback"
+        ),
         "accountSsoAvailable": False,
         "experimentalCodexOauthPossible": True,
         "reason": (
@@ -240,11 +252,13 @@ async def api_chat(request: Request):
         return {
             "reply": ai_reply or local_tutor_reply(body),
             "mode": "openai" if ai_reply else "local",
+            "model": env.OPENAI_MODEL if ai_reply else "Local fallback",
         }
     except Exception as exc:
         log_event(logger, "tutor.error", user_hash=user_hash(session["user"]["id"]), error=str(exc))
         return {
             "reply": local_tutor_reply(body),
             "mode": "local",
+            "model": "Local fallback",
             "warning": str(exc),
         }

@@ -73,7 +73,7 @@ button {
 button:disabled,
 input:disabled {
   cursor: not-allowed;
-  opacity: 0.58;
+  opacity: 0.72;
 }
 
 h1,
@@ -458,10 +458,16 @@ select {
   color: #30215f;
 }
 
-.tutor-panel #openAiLoginButton {
+.tutor-panel .tutor-connect-button {
   border-color: rgba(124, 92, 255, 0.28);
   background: #f1eeff;
   color: #30215f;
+}
+
+.tutor-panel .tutor-connect-button:hover {
+  border-color: rgba(124, 92, 255, 0.48);
+  background: #e8e1ff;
+  color: #241257;
 }
 
 .tutor-panel #codexLogoutButton {
@@ -771,8 +777,7 @@ main {
   margin-bottom: 22px;
 }
 
-.question-meta span,
-#tutorMode {
+.question-meta span {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -789,35 +794,52 @@ main {
   background: #fff0cc;
 }
 
-#tutorMode {
+.tutor-mode-pill {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 190px;
+  min-height: 0;
+  padding: 0 0 0 14px;
+  background: transparent;
+  border-radius: 0;
+  color: #173441;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
 }
 
-#tutorMode.tutor-mode-connected {
-  padding-left: 26px;
-  background: #e0f5e8;
+.tutor-mode-pill.tutor-mode-connected {
+  background: transparent;
   color: var(--good);
 }
 
-#tutorMode.tutor-mode-connected::before {
+.tutor-mode-pill.tutor-mode-connected::before {
   position: absolute;
-  left: 11px;
-  width: 8px;
-  height: 8px;
+  left: 0;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: var(--good);
-  box-shadow: 0 0 0 4px rgba(27, 123, 86, 0.14);
+  box-shadow: 0 0 0 3px rgba(27, 123, 86, 0.13);
   content: "";
 }
 
-#tutorMode.tutor-mode-server {
-  background: #e8f4ff;
+.tutor-mode-pill.tutor-mode-server {
+  background: transparent;
   color: #174f96;
 }
 
-#tutorMode.tutor-mode-locked {
-  background: #edf0f2;
+.tutor-mode-pill.tutor-mode-locked {
+  background: transparent;
   color: var(--muted);
+}
+
+.tutor-mode-pill.tutor-mode-local {
+  background: transparent;
+  color: #173441;
 }
 
 #questionCounter {
@@ -840,9 +862,9 @@ main {
   padding: 22px 24px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 252, 0.92));
   color: #18313b;
-  font-size: 1.12rem;
-  line-height: 1.72;
-  font-weight: 520;
+  font-size: 1.06rem;
+  line-height: 1.68;
+  font-weight: 420;
   letter-spacing: 0;
   white-space: pre-line;
   box-shadow: inset 4px 0 0 rgba(18, 96, 122, 0.16);
@@ -947,33 +969,52 @@ main {
   border-top: 1px solid rgba(14, 70, 89, 0.1);
 }
 
+.answer-actions .secondary-button {
+  border-color: rgba(13, 72, 93, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  color: #173441;
+}
+
+.answer-actions .secondary-button:hover {
+  background: #ffffff;
+  border-color: rgba(13, 72, 93, 0.28);
+}
+
+.answer-actions .secondary-button:disabled {
+  opacity: 0.72;
+  color: #49616c;
+}
+
 .hidden {
   display: none !important;
 }
 
 .panel-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 8px;
 }
 
 .panel-heading h3 {
-  margin-bottom: 6px;
+  margin: 0;
+}
+
+.tutor-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .tutor-status {
-  display: grid;
-  justify-items: end;
-  align-content: start;
-  gap: 6px;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
-.tutor-status strong {
-  max-width: 130px;
-  color: #173441;
-  font-size: 0.78rem;
-  line-height: 1.2;
-  text-align: right;
+.tutor-status .tutor-mode-pill {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tutor-status-copy {
@@ -992,9 +1033,22 @@ main {
 
 .tutor-connect-actions .secondary-button {
   flex: 1 1 180px;
-  min-height: 40px;
-  font-size: 0.76rem;
+  min-height: 44px;
+  font-size: 0.84rem;
+  font-weight: 800;
   white-space: normal;
+}
+
+.tutor-connect-actions .tutor-connect-button {
+  border: 1px solid rgba(124, 92, 255, 0.42);
+  background: linear-gradient(135deg, #f5f1ff, #e8f7ff);
+  color: #30215f;
+  box-shadow: 0 10px 22px rgba(76, 56, 145, 0.12);
+}
+
+.tutor-connect-actions .tutor-connect-button:hover {
+  background: linear-gradient(135deg, #ede6ff, #dcf2ff);
+  box-shadow: 0 12px 26px rgba(76, 56, 145, 0.18);
 }
 
 .chat-log {
@@ -1015,6 +1069,8 @@ main {
   max-width: 94%;
   padding: 13px 14px;
   border-radius: 18px;
+  font-size: 0.92rem;
+  font-weight: 460;
   line-height: 1.48;
   overflow-wrap: anywhere;
 }
@@ -1030,8 +1086,8 @@ main {
   padding: 14px;
   background: #f7f9fc;
   color: #213744;
-  font-size: 0.96rem;
-  font-weight: 750;
+  font-size: 0.92rem;
+  font-weight: 560;
   line-height: 1.45;
   box-shadow: 0 10px 26px rgba(13, 47, 59, 0.08);
 }
@@ -1069,14 +1125,14 @@ main {
 }
 
 .message strong {
-  font-weight: 900;
+  font-weight: 720;
 }
 
 .message .chat-heading {
   margin: 16px 0 8px;
   color: #0f2b36;
   font-size: 0.84rem;
-  font-weight: 950;
+  font-weight: 780;
   letter-spacing: 0.01em;
   text-transform: uppercase;
 }
@@ -1088,8 +1144,6 @@ main {
   padding: 12px 14px;
   background: linear-gradient(135deg, var(--teal-700), #174f96);
   color: white;
-  font-size: 0.88rem;
-  font-weight: 750;
 }
 
 .message.agent {
@@ -1135,9 +1189,9 @@ main {
 
 .chat-callout span {
   color: var(--good);
-  font-size: 0.72rem;
-  font-weight: 950;
-  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  font-weight: 780;
+  letter-spacing: 0.035em;
   text-transform: uppercase;
 }
 
@@ -1155,8 +1209,9 @@ main {
 
 .chat-callout strong {
   color: #102630;
-  font-size: 1.04rem;
-  line-height: 1.35;
+  font-size: 0.95rem;
+  font-weight: 620;
+  line-height: 1.42;
 }
 
 .answer-callout strong {
@@ -1203,6 +1258,12 @@ main {
 
 .quick-prompts button:active {
   animation: quick-pop 0.18s ease;
+}
+
+.quick-prompts button:disabled {
+  cursor: not-allowed;
+  opacity: 0.78;
+  filter: grayscale(0.08);
 }
 
 @keyframes quick-pop {
