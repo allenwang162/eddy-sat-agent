@@ -33,6 +33,55 @@ def extract_response_text(data):
     return "\n".join(parts)
 
 
+def extract_token_usage(data):
+    usage = data.get("usage") or (data.get("response") or {}).get("usage") or {}
+    if not isinstance(usage, dict):
+        return None
+    input_tokens = usage.get("input_tokens") or usage.get("prompt_tokens")
+    output_tokens = usage.get("output_tokens") or usage.get("completion_tokens")
+    total_tokens = usage.get("total_tokens")
+    if total_tokens is None and input_tokens is not None and output_tokens is not None:
+        total_tokens = input_tokens + output_tokens
+    if input_tokens is None and output_tokens is None and total_tokens is None:
+        return None
+    result = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+    }
+    details = usage.get("input_tokens_details") or usage.get("prompt_tokens_details")
+    if isinstance(details, dict) and details.get("cached_tokens") is not None:
+        result["cached_input_tokens"] = details.get("cached_tokens")
+    return {key: value for key, value in result.items() if value is not None}
+
+
+def estimate_token_count(value):
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
+    return max(1, round(len(text) / 4)) if text else 0
+
+
+def tutor_input_payload(payload):
+    return {
+        "studentQuestion": payload.get("userMessage"),
+        "satQuestion": payload.get("question"),
+        "concept": payload.get("concept"),
+        "pageContext": payload.get("pageContext"),
+        "latestAttempt": payload.get("latestAttempt"),
+        "selectedAnswer": payload.get("selectedAnswer"),
+    }
+
+
+def estimated_usage(input_payload, reply):
+    input_tokens = estimate_token_count(tutor_system_prompt()) + estimate_token_count(input_payload)
+    output_tokens = estimate_token_count(reply)
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": input_tokens + output_tokens,
+        "usage_source": "estimated",
+    }
+
+
 def clean_tutor_text(text):
     return (text or "").strip()
 
@@ -120,6 +169,7 @@ def codex_tutor_reply(payload, user_id):
     if not access_token:
         return None
     model = choose_codex_model(access_token)
+    input_payload = tutor_input_payload(payload)
     body = {
         "model": model,
         "store": False,
@@ -129,14 +179,7 @@ def codex_tutor_reply(payload, user_id):
             "role": "user",
             "content": [{
                 "type": "input_text",
-                "text": json.dumps({
-                    "studentQuestion": payload.get("userMessage"),
-                    "satQuestion": payload.get("question"),
-                    "concept": payload.get("concept"),
-                    "pageContext": payload.get("pageContext"),
-                    "latestAttempt": payload.get("latestAttempt"),
-                    "selectedAnswer": payload.get("selectedAnswer"),
-                }),
+                "text": json.dumps(input_payload),
             }],
         }],
     }
@@ -146,6 +189,7 @@ def codex_tutor_reply(payload, user_id):
         "accept": "application/json, text/event-stream",
     })
     chunks = []
+    usage = None
     for line in text.splitlines():
         if not line.startswith("data:"):
             continue
@@ -157,34 +201,42 @@ def codex_tutor_reply(payload, user_id):
             delta = event.get("delta") or event.get("output_text_delta") or (event.get("response") or {}).get("output_text")
             if isinstance(delta, str):
                 chunks.append(delta)
-            full = extract_response_text(event.get("response") or event)
+            response_data = event.get("response") or event
+            event_usage = extract_token_usage(response_data)
+            if event_usage:
+                event_usage["usage_source"] = "provider"
+                usage = event_usage
+            full = extract_response_text(response_data)
             if full:
                 chunks.append(full)
         except Exception:
             pass
     reply = clean_tutor_text("".join(chunks))
-    return {"reply": reply, "model": model} if reply else None
+    if reply and not usage:
+        usage = estimated_usage(input_payload, reply)
+    return {"reply": reply, "model": model, "usage": usage} if reply else None
 
 
 def openai_tutor_reply(payload):
     if not env.OPENAI_API_KEY:
         return None
+    input_payload = tutor_input_payload(payload)
     body = {
         "model": env.OPENAI_MODEL,
         "input": [
             {"role": "system", "content": tutor_system_prompt()},
-            {"role": "user", "content": json.dumps({
-                "studentQuestion": payload.get("userMessage"),
-                "satQuestion": payload.get("question"),
-                "concept": payload.get("concept"),
-                "pageContext": payload.get("pageContext"),
-                "latestAttempt": payload.get("latestAttempt"),
-                "selectedAnswer": payload.get("selectedAnswer"),
-            })},
+            {"role": "user", "content": json.dumps(input_payload)},
         ],
     }
     text = _post_json("https://api.openai.com/v1/responses", body, {
         "authorization": f"Bearer {env.OPENAI_API_KEY}",
         "content-type": "application/json",
     })
-    return extract_response_text(json.loads(text))
+    data = json.loads(text)
+    reply = extract_response_text(data)
+    usage = extract_token_usage(data)
+    if reply and usage:
+        usage["usage_source"] = "provider"
+    if reply and not usage:
+        usage = estimated_usage(input_payload, reply)
+    return {"reply": reply, "model": env.OPENAI_MODEL, "usage": usage} if reply else None

@@ -79,6 +79,19 @@ def codex_connected(user):
     return read_user_codex_auth(user["id"]) is not None if user else False
 
 
+def token_usage_fields(usage):
+    if not usage:
+        return {}
+    fields = {
+        "input_tokens": usage.get("input_tokens"),
+        "output_tokens": usage.get("output_tokens"),
+        "total_tokens": usage.get("total_tokens"),
+        "cached_input_tokens": usage.get("cached_input_tokens"),
+        "usage_source": usage.get("usage_source"),
+    }
+    return {key: value for key, value in fields.items() if value is not None}
+
+
 @app.get("/api/questions")
 def api_questions():
     questions = list_questions()
@@ -241,18 +254,36 @@ async def api_chat(request: Request):
     try:
         codex_result = codex_tutor_reply(body, session["user"]["id"])
         if codex_result:
-            log_event(logger, "tutor.reply", user_hash=user_hash(session["user"]["id"]), mode="codex", model=codex_result["model"])
+            usage = codex_result.get("usage")
+            log_event(
+                logger,
+                "tutor.reply",
+                user_hash=user_hash(session["user"]["id"]),
+                mode="codex",
+                model=codex_result["model"],
+                **token_usage_fields(usage),
+            )
             return {
                 "reply": codex_result["reply"],
                 "mode": "codex",
                 "model": codex_result["model"],
+                "usage": usage,
             }
-        ai_reply = openai_tutor_reply(body)
-        log_event(logger, "tutor.reply", user_hash=user_hash(session["user"]["id"]), mode="openai" if ai_reply else "local")
+        ai_result = openai_tutor_reply(body)
+        usage = ai_result.get("usage") if ai_result else None
+        log_event(
+            logger,
+            "tutor.reply",
+            user_hash=user_hash(session["user"]["id"]),
+            mode="openai" if ai_result else "local",
+            model=ai_result.get("model") if ai_result else "Local fallback",
+            **token_usage_fields(usage),
+        )
         return {
-            "reply": ai_reply or local_tutor_reply(body),
-            "mode": "openai" if ai_reply else "local",
-            "model": env.OPENAI_MODEL if ai_reply else "Local fallback",
+            "reply": ai_result["reply"] if ai_result else local_tutor_reply(body),
+            "mode": "openai" if ai_result else "local",
+            "model": ai_result["model"] if ai_result else "Local fallback",
+            "usage": usage,
         }
     except Exception as exc:
         log_event(logger, "tutor.error", user_hash=user_hash(session["user"]["id"]), error=str(exc))
