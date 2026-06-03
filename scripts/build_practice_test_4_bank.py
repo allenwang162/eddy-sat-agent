@@ -299,8 +299,10 @@ def clean_question_block(text):
 
 
 def clean_artifacts(text):
+    text = re.sub(r"Unauthorized copying or reuse of any part of this page is illegal\..*$", " ", str(text or ""), flags=re.I | re.S)
+    text = re.sub(r"\bCO\s*N\s*T\s*I\s*N\s*U\s*E\b.*$", " ", text, flags=re.I | re.S)
     lines = []
-    for line in str(text or "").splitlines():
+    for line in text.splitlines():
         stripped = line.strip()
         if not stripped:
             lines.append("")

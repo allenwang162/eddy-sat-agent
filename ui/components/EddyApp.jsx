@@ -23,6 +23,7 @@ const SAT_BLUEPRINT = [
     bundles: [
       { id: "full-pt4", title: "Practice Test 4 Full Bank", source: "College Board Practice Test 4 PDF", status: "available", mode: "All", practiceTest: 4, size: 120 },
       { id: "full-pt5", title: "Practice Test 5 Full Bank", source: "College Board Practice Test 5 PDF", status: "available", mode: "All", practiceTest: 5, size: 120 },
+      { id: "full-pt6", title: "Practice Test 6 Full Bank", source: "College Board Practice Test 6 PDF", status: "available", mode: "All", practiceTest: 6, size: 120 },
       { id: "full-adaptive-1", title: "Adaptive Full SAT Bundle", source: "Coming when more tests are imported", status: "locked", mode: "All", size: 0 },
       { id: "full-review-1", title: "Weakness Review Bundle", source: "Generated from student history", status: "locked", mode: "All", size: 0 },
     ],
@@ -38,6 +39,7 @@ const SAT_BLUEPRINT = [
     bundles: [
       { id: "rw-pt4", title: "Practice Test 4 Reading/Writing", source: "College Board Practice Test 4 PDF", status: "available", mode: "Reading and Writing", practiceTest: 4, size: 66 },
       { id: "rw-pt5", title: "Practice Test 5 Reading/Writing", source: "College Board Practice Test 5 PDF", status: "available", mode: "Reading and Writing", practiceTest: 5, size: 66 },
+      { id: "rw-pt6", title: "Practice Test 6 Reading/Writing", source: "College Board Practice Test 6 PDF", status: "available", mode: "Reading and Writing", practiceTest: 6, size: 66 },
       { id: "rw-domain-craft", title: "Craft and Structure Drill", source: "Coming from generated bank", status: "locked", mode: "Reading and Writing", size: 0 },
       { id: "rw-grammar", title: "Grammar and Expression Drill", source: "Coming from generated bank", status: "locked", mode: "Reading and Writing", size: 0 },
     ],
@@ -53,6 +55,7 @@ const SAT_BLUEPRINT = [
     bundles: [
       { id: "math-pt4", title: "Practice Test 4 Math", source: "College Board Practice Test 4 PDF", status: "available", mode: "Math", practiceTest: 4, size: 54 },
       { id: "math-pt5", title: "Practice Test 5 Math", source: "College Board Practice Test 5 PDF", status: "available", mode: "Math", practiceTest: 5, size: 54 },
+      { id: "math-pt6", title: "Practice Test 6 Math", source: "College Board Practice Test 6 PDF", status: "available", mode: "Math", practiceTest: 6, size: 54 },
       { id: "math-algebra", title: "Algebra and Functions Drill", source: "Coming from generated bank", status: "locked", mode: "Math", size: 0 },
       { id: "math-data-geo", title: "Data, Geometry, and Trig Drill", source: "Coming from generated bank", status: "locked", mode: "Math", size: 0 },
     ],
